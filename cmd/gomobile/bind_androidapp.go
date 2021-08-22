@@ -282,6 +282,7 @@ func buildJar(w io.Writer, srcDir string) error {
 	}
 
 	args := []string{
+		"-g", "-parameters",
 		"-d", dst,
 		"-source", javacTargetVer,
 		"-target", javacTargetVer,
