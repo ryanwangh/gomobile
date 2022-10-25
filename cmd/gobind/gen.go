@@ -25,7 +25,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func genPkg(lang string, p *types.Package, astFiles []*ast.File, allPkg []*types.Package, classes []*java.Class, otypes []*objc.Named) {
+func genPkg(lang string, p *types.Package, astFiles []*ast.File, allPkg []*types.Package, classes []*java.Class, otypes []*objc.Named, libName string) {
 	fname := defaultFileName(lang, p)
 	conf := &bind.GeneratorConfig{
 		Fset:   fset,
@@ -88,14 +88,14 @@ func genPkg(lang string, p *types.Package, astFiles []*ast.File, allPkg []*types
 			repo := filepath.Clean(filepath.Join(dir, "..")) // golang.org/x/mobile directory.
 			for _, javaFile := range []string{"Seq.java"} {
 				src := filepath.Join(repo, "bind/java/"+javaFile)
-				in, err := os.Open(src)
+				srcContent, err := os.ReadFile(src)
 				if err != nil {
 					errorf("failed to open Java support file: %v", err)
 				}
-				defer in.Close()
+				srcContent = []byte(strings.ReplaceAll(string(srcContent), "gojni", libName))
 				w, closer := writer(filepath.Join("java", "go", javaFile))
 				defer closer()
-				if _, err := io.Copy(w, in); err != nil {
+				if _, err := io.Copy(w, bytes.NewReader(srcContent)); err != nil {
 					errorf("failed to copy Java support file: %v", err)
 					return
 				}

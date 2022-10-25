@@ -127,7 +127,7 @@ func runBind(cmd *command) error {
 
 	switch {
 	case isAndroidPlatform(targets[0].platform):
-		return goAndroidBind(gobind, pkgs, targets)
+		return goAndroidBind(bindLibName, gobind, pkgs, targets)
 	case isApplePlatform(targets[0].platform):
 		if !xcodeAvailable() {
 			return fmt.Errorf("-target=%q requires Xcode", buildTarget)
@@ -143,6 +143,7 @@ var (
 	bindJavaPkg       string // -javapkg
 	bindClasspath     string // -classpath
 	bindBootClasspath string // -bootclasspath
+	bindLibName       string // -libname
 )
 
 func init() {
@@ -153,6 +154,7 @@ func init() {
 		"custom Objective-C name prefix. Valid only with -target=ios.")
 	cmdBind.flag.StringVar(&bindClasspath, "classpath", "", "The classpath for imported Java classes. Valid only with -target=android.")
 	cmdBind.flag.StringVar(&bindBootClasspath, "bootclasspath", "", "The bootstrap classpath for imported Java classes. Valid only with -target=android.")
+	cmdBind.flag.StringVar(&bindLibName, "libname", "gojni", "The name of the generated shared library. Valid only with -target=android.")
 }
 
 func bootClasspath() (string, error) {
