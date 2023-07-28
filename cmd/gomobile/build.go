@@ -247,6 +247,7 @@ var (
 	buildBundleID     string      // -bundleid
 	buildIOSVersion   string      // -iosversion
 	buildMacOSVersion string      // -macosversion
+	buildTVOSVersion  string      // -tvosversion
 	buildAndroidAPI   int         // -androidapi
 	buildTags         stringsFlag // -tags
 )
@@ -259,6 +260,7 @@ func addBuildFlags(cmd *command) {
 	cmd.flag.StringVar(&buildBundleID, "bundleid", "", "")
 	cmd.flag.StringVar(&buildIOSVersion, "iosversion", "13.0", "")
 	cmd.flag.StringVar(&buildMacOSVersion, "macosversion", "10.15", "")
+	cmd.flag.StringVar(&buildTVOSVersion, "tvosversion", "16.0", "")
 	cmd.flag.IntVar(&buildAndroidAPI, "androidapi", minAndroidAPI, "")
 
 	cmd.flag.BoolVar(&buildA, "a", false, "")
@@ -427,6 +429,10 @@ func parseBuildTarget(buildTarget string) ([]targetInfo, error) {
 	// Special case to build iossimulator if -target=ios
 	if buildTarget == "ios" {
 		addPlatform("iossimulator")
+	}
+
+	if buildTarget == "tvos" {
+		addPlatform("tvossimulator")
 	}
 
 	return targets, nil

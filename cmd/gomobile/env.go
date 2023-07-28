@@ -32,7 +32,7 @@ func isApplePlatform(platform string) bool {
 	return contains(applePlatforms, platform)
 }
 
-var applePlatforms = []string{"ios", "iossimulator", "macos", "maccatalyst"}
+var applePlatforms = []string{"ios", "iossimulator", "macos", "maccatalyst", "tvos", "tvossimulator"}
 
 func platformArchs(platform string) []string {
 	switch platform {
@@ -41,6 +41,10 @@ func platformArchs(platform string) []string {
 	case "iossimulator":
 		return []string{"arm64", "amd64"}
 	case "macos", "maccatalyst":
+		return []string{"arm64", "amd64"}
+	case "tvos":
+		return []string{"arm64"}
+	case "tvossimulator":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
@@ -66,6 +70,8 @@ func platformOS(platform string) string {
 		// We also apply a "macos" or "maccatalyst" build tag, respectively.
 		// See below for additional context.
 		return "darwin"
+	case "tvos", "tvossimulator":
+		return "darwin"
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
@@ -77,6 +83,8 @@ func platformTags(platform string) []string {
 		return []string{"android"}
 	case "ios", "iossimulator":
 		return []string{"ios"}
+	case "tvos", "tvossimulator":
+		return []string{"ios", "tvos"}
 	case "macos":
 		return []string{"macos"}
 	case "maccatalyst":
@@ -215,6 +223,18 @@ func envInit() (err error) {
 				sdk = "iphonesimulator"
 				clang, cflags, err = envClang(sdk)
 				cflags += " -mios-simulator-version-min=" + buildIOSVersion
+				cflags += " -fembed-bitcode"
+			case "tvos":
+				goos = "ios"
+				sdk = "appletvos"
+				clang, cflags, err = envClang(sdk)
+				cflags += " -target arm64-apple-tvos" + buildTVOSVersion
+				cflags += " -fembed-bitcode"
+			case "tvossimulator":
+				goos = "ios"
+				sdk = "appletvsimulator"
+				clang, cflags, err = envClang(sdk)
+				cflags += " -target x86_64-apple-tvos" + buildTVOSVersion + "-simulator"
 				cflags += " -fembed-bitcode"
 			case "maccatalyst":
 				// Mac Catalyst is a subset of iOS APIs made available on macOS
