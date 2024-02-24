@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -93,17 +94,17 @@ func goAppleBind(gobind string, pkgs []*packages.Package, targets []targetInfo) 
 		t := t
 		buildWG.Go(func() error {
 			outDir := outDirsForPlatform[t.platform]
-			outSrcDir := filepath.Join(outDir, "src")
+			outSrcDir := filepath.Join(outDir, "src", "gobind")
 
 			if modulesUsed {
-				// Copy the source directory for each architecture for concurrent building.
-				newOutSrcDir := filepath.Join(outDir, "src-"+t.arch)
+				newOutSrcDir, _ := filepath.Abs(filepath.Join(".", "build", t.platform+"-"+t.arch, "Libbox"))
 				if !buildN {
 					if err := doCopyAll(newOutSrcDir, outSrcDir); err != nil {
 						return err
 					}
 				}
 				outSrcDir = newOutSrcDir
+				defer os.RemoveAll(outSrcDir)
 			}
 
 			// Copy the environment variables to make this function concurrent-safe.
@@ -113,17 +114,6 @@ func goAppleBind(gobind string, pkgs []*packages.Package, targets []targetInfo) 
 			// Add the generated packages to GOPATH for reverse bindings.
 			gopath := fmt.Sprintf("GOPATH=%s%c%s", outDir, filepath.ListSeparator, goEnv("GOPATH"))
 			env = append(env, gopath)
-
-			// Run `go mod tidy` to force to create go.sum.
-			// Without go.sum, `go build` fails as of Go 1.16.
-			if modulesUsed {
-				if err := writeGoMod(outSrcDir, t.platform, t.arch); err != nil {
-					return err
-				}
-				if err := goModTidyAt(outSrcDir, env); err != nil {
-					return err
-				}
-			}
 
 			if err := goAppleBindArchive(appleArchiveFilepath(name, t), env, outSrcDir); err != nil {
 				return fmt.Errorf("%s/%s: %v", t.platform, t.arch, err)
@@ -306,7 +296,7 @@ func appleArchiveFilepath(name string, t targetInfo) string {
 }
 
 func goAppleBindArchive(out string, env []string, gosrc string) error {
-	return goBuildAt(gosrc, "./gobind", env, "-buildmode=c-archive", "-o", out)
+	return goBuildAt(gosrc, ".", env, "-buildmode=c-archive", "-o", out)
 }
 
 var appleBindHeaderTmpl = template.Must(template.New("apple.h").Parse(`

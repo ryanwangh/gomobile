@@ -367,33 +367,24 @@ func buildAndroidSO(libName string, outputDir string, arch string) error {
 		return err
 	}
 
-	srcDir := filepath.Join(tmpdir, "src")
+	srcDir := filepath.Join(tmpdir, "src", "gobind")
 
 	if modulesUsed {
-		// Copy the source directory for each architecture for concurrent building.
-		newSrcDir := filepath.Join(tmpdir, "src-android-"+arch)
+		newSrcDir, _ := filepath.Abs(filepath.Join(".", "build", arch, "lib"+libName))
+		os.MkdirAll(newSrcDir, 0755)
 		if !buildN {
 			if err := doCopyAll(newSrcDir, srcDir); err != nil {
 				return err
 			}
 		}
 		srcDir = newSrcDir
-
-		if err := writeGoMod(srcDir, "android", arch); err != nil {
-			return err
-		}
-
-		// Run `go mod tidy` to force to create go.sum.
-		// Without go.sum, `go build` fails as of Go 1.16.
-		if err := goModTidyAt(srcDir, env); err != nil {
-			return err
-		}
+		defer os.RemoveAll(srcDir)
 	}
 
 	toolchain := ndk.Toolchain(arch)
 	if err := goBuildAt(
 		srcDir,
-		"./gobind",
+		".",
 		env,
 		"-buildmode=c-shared",
 		"-o="+filepath.Join(outputDir, "src", "main", "jniLibs", toolchain.abi, "lib"+libName+".so"),
