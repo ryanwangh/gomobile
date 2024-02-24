@@ -250,6 +250,7 @@ var (
 	buildTVOSVersion  string      // -tvosversion
 	buildAndroidAPI   int         // -androidapi
 	buildTags         stringsFlag // -tags
+	buildVCS          bool        // -buildvcs
 )
 
 func addBuildFlags(cmd *command) {
@@ -267,6 +268,7 @@ func addBuildFlags(cmd *command) {
 	cmd.flag.BoolVar(&buildI, "i", false, "")
 	cmd.flag.BoolVar(&buildTrimpath, "trimpath", false, "")
 	cmd.flag.Var(&buildTags, "tags", "")
+	cmd.flag.BoolVar(&buildVCS, "buildvcs", true, "")
 }
 
 func addBuildFlagsNVXWork(cmd *command) {
@@ -333,6 +335,9 @@ func goCmdAt(at string, subcmd string, srcs []string, env []string, args ...stri
 	}
 	if buildWork {
 		cmd.Args = append(cmd.Args, "-work")
+	}
+	if !buildVCS {
+		cmd.Args = append(cmd.Args, "-buildvcs=false")
 	}
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Args = append(cmd.Args, srcs...)
