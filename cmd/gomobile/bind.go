@@ -291,7 +291,7 @@ func getModuleVersions(targetPlatform string, targetArch string, src string) (*m
 		}
 	}
 
-	v, err := ensureGoVersion()
+	v, err := getGoModuleVersion(src)
 	if err != nil {
 		return nil, err
 	}
@@ -299,11 +299,41 @@ func getModuleVersions(targetPlatform string, targetArch string, src string) (*m
 	if v == "" {
 		v = fmt.Sprintf("go1.%d", minimumGoMinorVersion)
 	}
+
 	if err := f.AddGoStmt(strings.TrimPrefix(v, "go")); err != nil {
 		return nil, err
 	}
 
 	return f, nil
+}
+
+func getGoModuleVersion(src string) (string, error) {
+	cmd := exec.Command("go", "list")
+	cmd.Args = append(cmd.Args, "-m", "-json")
+	cmd.Dir = src
+
+	output, err := cmd.Output()
+	if err != nil {
+		// Module information is not available at src.
+		return ensureGoVersion()
+	}
+
+	type Module struct {
+		Main      bool
+		Path      string
+		Version   string
+		Dir       string
+		Replace   *Module
+		GoVersion string
+	}
+
+	var mod Module
+	err = json.Unmarshal(output, &mod)
+	if err != nil {
+		return "", err
+	}
+
+	return mod.GoVersion, nil
 }
 
 // writeGoMod writes go.mod file at dir when Go modules are used.
