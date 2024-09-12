@@ -12,8 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sagernet/gomobile/internal/importers"
-	"github.com/sagernet/gomobile/internal/importers/java"
+	"github.com/ryanwangh/gomobile/internal/importers"
+	"github.com/ryanwangh/gomobile/internal/importers/java"
 )
 
 type (
@@ -941,7 +941,7 @@ import "C"
 
 import (
 	"Java"
-	_seq "github.com/sagernet/gomobile/bind/seq"
+	_seq "github.com/ryanwangh/gomobile/bind/seq"
 )
 
 `
