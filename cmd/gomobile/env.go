@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/sagernet/gomobile/internal/sdkpath"
+	"golang.org/x/mobile/internal/sdkpath"
 )
 
 // General mobile build environment. Initialized by envInit.
@@ -32,7 +32,7 @@ func isApplePlatform(platform string) bool {
 	return contains(applePlatforms, platform)
 }
 
-var applePlatforms = []string{"ios", "iossimulator", "macos", "maccatalyst", "tvos", "tvossimulator"}
+var applePlatforms = []string{"ios", "iossimulator", "macos", "maccatalyst"}
 
 func platformArchs(platform string) []string {
 	switch platform {
@@ -41,10 +41,6 @@ func platformArchs(platform string) []string {
 	case "iossimulator":
 		return []string{"arm64", "amd64"}
 	case "macos", "maccatalyst":
-		return []string{"arm64", "amd64"}
-	case "tvos":
-		return []string{"arm64"}
-	case "tvossimulator":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
@@ -69,9 +65,9 @@ func platformOS(platform string) string {
 		// not GOOS=ios, since the underlying OS (and kernel, runtime) is macOS.
 		// We also apply a "macos" or "maccatalyst" build tag, respectively.
 		// See below for additional context.
-		return "darwin"
-	case "tvos", "tvossimulator":
-		return "darwin"
+		// Using GOOS=darwin with build-tag ios leads to corrupt builds: https://github.com/golang/go/issues/52299
+		// => So we use GOOS=ios for now
+		return "ios"
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
@@ -83,8 +79,6 @@ func platformTags(platform string) []string {
 		return []string{"android"}
 	case "ios", "iossimulator":
 		return []string{"ios"}
-	case "tvos", "tvossimulator":
-		return []string{"ios", "tvos"}
 	case "macos":
 		return []string{"macos"}
 	case "maccatalyst":
@@ -100,7 +94,9 @@ func platformTags(platform string) []string {
 		// https://stackoverflow.com/questions/12132933/preprocessor-macro-for-os-x-targets/49560690#49560690
 		// TODO(ydnar): remove tag "ios" when cgo supports Catalyst
 		// See golang.org/issues/47228
-		return []string{"ios", "macos", "maccatalyst"}
+		// Using GOOS=darwin with build-tag ios leads to corrupt builds: https://github.com/golang/go/issues/52299
+		// => So we use GOOS=ios for now
+		return []string{"macos", "maccatalyst"}
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
@@ -224,18 +220,6 @@ func envInit() (err error) {
 				clang, cflags, err = envClang(sdk)
 				cflags += " -mios-simulator-version-min=" + buildIOSVersion
 				cflags += " -fembed-bitcode"
-			case "tvos":
-				goos = "ios"
-				sdk = "appletvos"
-				clang, cflags, err = envClang(sdk)
-				cflags += " -target arm64-apple-tvos" + buildTVOSVersion
-				cflags += " -fembed-bitcode"
-			case "tvossimulator":
-				goos = "ios"
-				sdk = "appletvsimulator"
-				clang, cflags, err = envClang(sdk)
-				cflags += " -target x86_64-apple-tvos" + buildTVOSVersion + "-simulator"
-				cflags += " -fembed-bitcode"
 			case "maccatalyst":
 				// Mac Catalyst is a subset of iOS APIs made available on macOS
 				// designed to ease porting apps developed for iPad to macOS.
@@ -247,7 +231,10 @@ func envInit() (err error) {
 				// targets, there is also a "maccatalyst" tag.
 				// Some additional context on this can be found here:
 				// https://stackoverflow.com/questions/12132933/preprocessor-macro-for-os-x-targets/49560690#49560690
-				goos = "darwin"
+
+				// Using GOOS=darwin with build-tag ios leads to corrupt builds: https://github.com/golang/go/issues/52299
+				// => So we use GOOS=ios for now
+				goos = "ios"
 				sdk = "macosx"
 				clang, cflags, err = envClang(sdk)
 				// TODO(ydnar): the following 3 lines MAY be needed to compile
@@ -273,8 +260,6 @@ func envInit() (err error) {
 				if arch == "arm64" {
 					cflags += " -fembed-bitcode"
 				}
-
-				cflags += " -mmacosx-version-min=" + buildMacOSVersion
 			default:
 				panic(fmt.Errorf("unknown Apple target: %s/%s", platform, arch))
 			}
